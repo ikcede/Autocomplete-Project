@@ -1,0 +1,39 @@
+body {
+	background:black;
+}
+
+#editor {
+	width:100%;
+	height:100%;
+	position:fixed;
+	left:0;
+	top:0;
+	
+	font-size:15px;
+	
+}
+
+#acbox {
+	min-height:1.5em;
+	max-height:6em;
+	overflow-y:auto;
+	background:black;
+	color:lightgrey;
+	position:absolute;
+	z-index:100;
+	border:1px solid grey;
+	
+	font-family:Arial;
+	padding: 5px 5px 5px 5px;
+	font-size:15px;
+	
+	border-radius:5px;
+}
+
+#acbox::-webkit-scrollbar { 
+    display: none; 
+}
+
+#acbox div {
+	cursor:pointer;
+}
