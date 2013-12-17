@@ -21,8 +21,8 @@ $parser->normalizeFile();
 // $parser2->normalizeFile();
 
 // Amount of chunks to use
-$k = 50;
-$chunks = array_chunk($parser->data, intval(count($parser->data)/$k));
+// $k = 50;
+// $chunks = array_chunk($parser->data, intval(count($parser->data)/$k));
 
 set_time_limit(0);
 
@@ -40,8 +40,8 @@ set_time_limit(0);
 // 	)
 // ));
 // 
-// $fl = new FrequencyList(null, true);
-// $fl->addWords($parser->data);
+$fl = new FrequencyList(null, true);
+$fl->addWords($parser->data);
 
 // $fl = new InverseFreq(null, true);
 // $docs = array();
@@ -73,12 +73,12 @@ set_time_limit(0);
 
 // wtf 0.55658770270397
 
-$bg = new Ngram();
-$bg->build($parser->data);
+// $bg = new Ngram();
+// $bg->build($parser->data);
 
 // print_r($bg->data);
 
-print($bg->score());
+// print($bg->score());
 
 $mtime = microtime(); 
 $mtime = explode(" ",$mtime); 

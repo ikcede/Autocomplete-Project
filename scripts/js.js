@@ -15,7 +15,7 @@ var AutoComplete = function(editor, settings) {
 	settings = $.extend({
 	
 		// Algorithm
-		algo: "inverse",
+		algo: "simple",
 		
 		// It is expanded?
 		expand: false,
@@ -277,7 +277,7 @@ var AutoComplete = function(editor, settings) {
 		editor: editor,
 		change: change,
 		settings: settings
-	}, functions);;
+	}, functions);
 };
 
 var ac;

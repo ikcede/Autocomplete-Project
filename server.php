@@ -21,15 +21,11 @@ include_once("inversefreq.php");
 if($algo == "simple") {
 	
 	// We do this for each file
-	$parser = new FileParser("learn/data/testarticle.txt");
+	$parser = new FileParser("learn/data/ataleoftwocities.txt");
 	$parser->normalizeFile();
-	
-	$parser2 = new FileParser("learn/data/nytimearticle.txt");
-	$parser2->normalizeFile();
 	
 	$fl = new FrequencyList();
 	$fl->addWords($parser->data);
-	$fl->addWords($parser2->data);
 	
 	$ret = array(
 		"data"=>array()
@@ -67,6 +63,10 @@ else if($algo == "inverse") {
 }
 
 // passthru a system call?
+
+else if($algo == "bigram") {
+
+}
 
 else {
 	die('{"data":[]}');
