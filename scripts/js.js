@@ -263,6 +263,15 @@ var AutoComplete = function(editor, settings) {
 				},
 				readOnly: true // false if this command should not apply in readOnly mode
 			});
+			
+			editor.commands.addCommand({
+				name: 'tfidf',
+				bindKey: {win: 'Ctrl-I',  mac: 'Ctrl-I'},
+				exec: function(editor) {
+					cx.settings.algo = "inverse";
+				},
+				readOnly: true // false if this command should not apply in readOnly mode
+			});
 	
 			$(document).on("click", "#acbox div", function() {
 				editor.getSession().insert(editor.getSession().selection.getCursor(), $(this).attr("frag") + " ");
