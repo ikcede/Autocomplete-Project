@@ -8,13 +8,14 @@ $starttime = $mtime;
 include_once("FileParser.php");
 include_once("frequencylist.php");
 include_once("inversefreq.php");
+include_once("bigram.php");
 
 // We do this for each file
 $parser = new FileParser("learn/data/ataleoftwocities.txt");
 $parser->normalizeFile();
 
 // Amount of chunks to use
-$k = 25;
+$k = 50;
 $chunks = array_chunk($parser->data, intval(count($parser->data)/$k));
 
 set_time_limit(0);

@@ -47,7 +47,6 @@ class Ngram {
 	
 	public function guess($frag, $words) {
 		// Take $words to be at most the length of $n-1
-		// If n were 1, this would simply be a tf omgggg I'm a noob
 		
 		$possibles = $this->trie->dump($frag);
 		$guesses = array();
@@ -104,12 +103,12 @@ class Ngram {
 		
 		$words = explode("|", $word);
 	
-		$chars = str_split($words[1]);
+		$chars = str_split($words[$this->n-1]);
 		$frag = "";
 		
 		for($i=0;$i<count($chars);$i++) {
 			$frag .= $chars[$i];
-			$hits = $this->guess($frag, array($words[0]));
+			$hits = $this->guess($frag, array_slice($words,0,$this->n-1));
 			if(count($hits) > 0 && $hits[0] == $words[1]) {
 				break;
 			} else if(count($hits) == 0) {

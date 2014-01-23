@@ -40,8 +40,8 @@ set_time_limit(0);
 // 	)
 // ));
 // 
-$fl = new FrequencyList(null, true);
-$fl->addWords($parser->data);
+// $fl = new FrequencyList(null, true);
+// $fl->addWords($parser->data);
 
 // $fl = new InverseFreq(null, true);
 // $docs = array();
@@ -73,12 +73,12 @@ $fl->addWords($parser->data);
 
 // wtf 0.55658770270397
 
-// $bg = new Ngram();
-// $bg->build($parser->data);
+$bg = new Ngram(2);
+$bg->build($parser->data);
 
 // print_r($bg->data);
 
-// print($bg->score());
+print($bg->score());
 
 $mtime = microtime(); 
 $mtime = explode(" ",$mtime); 

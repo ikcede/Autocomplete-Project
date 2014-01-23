@@ -1,12 +1,13 @@
 
-// Settings for which documents to use!
-// Whoops insert only the fragment instead of the word itself
 
 // Autocomplete plugin for ACE editor
 var AutoComplete = function(editor, settings) {
 	
 	var el = null;
 	var data = [];
+	var bigram = null;
+	var unigram = null;
+	var trie = null;
 	
 	// Track which change its on
 	var change = 0;
@@ -43,15 +44,6 @@ var AutoComplete = function(editor, settings) {
 			return c == " " || c == "\n" || c == "\r" || c == "\t" || c == "\f" || c == "\v";
 		},
 	
-		// Positions the autocomplete box
-		position: function() {
-			var cursor = $(".ace_cursor")[0];
-			$(this.el).css({
-				left: cursor.offsetLeft + $(".ace_gutter-layer").width(),
-				top: Number(cursor.offsetTop) + 25
-			});
-		},
-	
 		// Tokenizes the words in a line
 		// Will tokenize words up to the stopping point
 		tokenize: function(str, stp) {
@@ -81,33 +73,11 @@ var AutoComplete = function(editor, settings) {
 		
 		},
 	
-		// Renders the autocomplete box
-		render: function(change) {
-			if(this.change == change) {
-				this.el.show();
-				this.el.html("");
-				
-				// Display words
-				if(this.settings.expand && this.data && this.data.length > 1) {
-					for(var i=0;i<this.data.length;i++) {
-						this.el.append("<div frag='"+this.data[i].write.replace(/'/g, "\\'")+"'>"
-							+this.data[i].data+"</div>");
-					}
-				} else if(this.data && this.data.length > 0) {
-					this.el.html("<div frag='"+this.data[0].write.replace(/'/g, "\\'")+"'>"
-						+this.data[0].data+"</div>");
-				} else {
-					this.el.html("");
-				}
-			}
-		},
-	
 		// Function to control most of the autocomplete interaction
 		autocomplete: function(cx, change) {
-			// Check to see if it's on
+			// Check to see if it's on and loaded
 			if(!this.settings.on) return false;
-		
-			cx.position();
+			if(this.bigram === null) return false;
 		
 			setTimeout(function() {
 				// Gets row and column
@@ -171,37 +141,130 @@ var AutoComplete = function(editor, settings) {
 					}
 				
 					// Make data call
+					// Altered to a cache call
 					cx.getData(words, change);
+					
+					// Display
+					cx.render(change);
 			
 				}
 			},15);
 
 		},
-	
+		
+		// Given a bunch of words, query the bigram and unigram for hits
+		getData: function(words, change) {
+			
+			// Get all possible words it could be that are stored in trie
+			var completions = this.trie.list(words[0]);
+			
+			// Try to get all bigrams ending in this word
+			var hits = {};
+			var empty = true;
+			for(var word in completions) {
+				if(this.bigram.get(completions[word], [words[1]]) > 0) {
+					hits[completions[word]] = this.bigram.get(completions[word], [words[1]]);
+					empty = false;
+				}
+			}
+			
+			if(empty) {
+				// Get all unigram ones instead
+				for(var word in completions) {
+					if(this.unigram.get(completions[word]) > 0) {
+						hits[completions[word]] = this.unigram.get(completions[word]);
+						empty = false;
+					}
+				}
+				
+			}
+			
+			this.sortData(hits);
+
+			// words[0] is the current fragment, take that would of each returned word
+			for(var i = 0;i<this.data.length;i++) {
+				this.data[i] = {
+					data:this.data[i],
+					write:this.data[i].slice(words[0].length)
+				};
+			}
+
+		},
+		
+		// Helper function that resets and sorts current data based on hits
+		// Sorts by ngram frequency first and then unigram freq and then alphabetically
+		sortData: function(hits) {
+			this.data = [];
+			for(var key in hits) {
+				this.data.push(key);
+			}
+			
+			var context = this;
+			this.data.sort(function(a,b) {
+				if(hits[a] == hits[b]) {
+					if(context.unigram.get(a) == context.unigram.get(b)) {
+						return a < b ? 1 : -1;
+					}
+					return context.unigram.get(a) < context.unigram.get(b) ? 1 : -1;
+				}
+				return hits[a] < hits[b] ? 1 : -1;
+			});
+			
+			var slicelength = this.data.length > 10 ? 10 : this.data.length;
+			this.data = this.data.slice(0,slicelength);
+		},
+		
+		//---------------------------------------------------------------
+		// Rendering
+		//---------------------------------------------------------------
+		
+		// Renders the autocomplete box, adding in all the necessary elements
+		render: function(change) {
+		
+			this.position();
+		
+			if(this.change == change) {
+				this.el.show();
+				this.el.html("");
+				
+				// Display words
+				if(this.settings.expand && this.data && this.data.length > 1) {
+					for(var i=0;i<this.data.length;i++) {
+						this.el.append("<div frag='"+this.data[i].write.replace(/'/g, "\\'")+"'>"
+							+this.data[i].data+"</div>");
+					}
+				} else if(this.data && this.data.length > 0) {
+					this.el.html("<div frag='"+this.data[0].write.replace(/'/g, "\\'")+"'>"
+						+this.data[0].data+"</div>");
+				} else {
+					this.el.html("");
+				}
+			}
+		},
+		
+		// Positions the autocomplete box
+		position: function() {
+			var cursor = $(".ace_cursor")[0];
+			var parent = $("#editor")[0];
+			$(this.el).css({
+				left: Number(cursor.offsetLeft) + Number(parent.offsetLeft) + 5,
+				top: Number(cursor.offsetTop) + Number(parent.offsetTop) + 26
+			});
+		},
+		
 		//---------------------------------------------------------------
 		// Server control
 		//---------------------------------------------------------------
 	
-		// Given a bunch of words, get data back from server about them
-		getData: function(words, change) {
+		// Get all data structures from the server
+		getStructures: function() {
 			var context = this;
-			$.get("server.php", {
-				data: JSON.stringify(words), 
-				algo: context.settings.algo
-			}, function(response) {
+			$.get("server.php", {}, function(response) {
 				// Response will be a JSON
 				response = JSON.parse(response);
-				context.data = response.data[0];
-				
-				// words[0] is the current fragment, take that would of each returned word
-				for(var i = 0;i<context.data.length;i++) {
-					context.data[i] = {
-						data:context.data[i],
-						write:context.data[i].slice(words[0].length)
-					};
-				}
-				
-				context.render(change);
+				context.bigram = Ngram(response.bigram);
+				context.unigram = Ngram(response.unigram);
+				context.trie = Trie(response.trie);
 			});
 		},
 	
@@ -215,7 +278,13 @@ var AutoComplete = function(editor, settings) {
 			this.el.hide();
 		
 			var cx = this;
-		
+			
+			this.getStructures();
+			
+			//-----------------------------
+			// Event Handlers
+			//-----------------------------
+			
 			editor.getSession().selection.on('changeCursor', function(e) {
 				cx.el.hide();
 				cx.change = (cx.change + 1) % 100;
@@ -235,7 +304,7 @@ var AutoComplete = function(editor, settings) {
 					}
 					cx.render(cx.change);
 				},
-				readOnly: true // false if this command should not apply in readOnly mode
+				readOnly: false // false if this command should not apply in readOnly mode
 			});
 	
 			// Allow for autocomplete completion
@@ -249,7 +318,7 @@ var AutoComplete = function(editor, settings) {
 						editor.focus();
 					}
 				},
-				readOnly: true // false if this command should not apply in readOnly mode
+				readOnly: false // false if this command should not apply in readOnly mode
 			});
 	
 			editor.commands.addCommand({
@@ -261,17 +330,17 @@ var AutoComplete = function(editor, settings) {
 						cx.autocomplete(cx, cx.change+0);
 					} else cx.el.hide();
 				},
-				readOnly: true // false if this command should not apply in readOnly mode
+				readOnly: false // false if this command should not apply in readOnly mode
 			});
 			
-			editor.commands.addCommand({
-				name: 'tfidf',
-				bindKey: {win: 'Ctrl-I',  mac: 'Ctrl-I'},
-				exec: function(editor) {
-					cx.settings.algo = "inverse";
-				},
-				readOnly: true // false if this command should not apply in readOnly mode
-			});
+			// editor.commands.addCommand({
+// 				name: 'tfidf',
+// 				bindKey: {win: 'Ctrl-I',  mac: 'Ctrl-I'},
+// 				exec: function(editor) {
+// 					cx.settings.algo = "inverse";
+// 				},
+// 				readOnly: false // false if this command should not apply in readOnly mode
+// 			});
 	
 			$(document).on("click", "#acbox div", function() {
 				editor.getSession().insert(editor.getSession().selection.getCursor(), $(this).attr("frag") + " ");
@@ -283,6 +352,9 @@ var AutoComplete = function(editor, settings) {
 	return $.extend({
 		el: el,
 		data: data,
+		unigram: unigram,
+		bigram: bigram,
+		trie: trie,
 		editor: editor,
 		change: change,
 		settings: settings
@@ -295,10 +367,20 @@ var ac;
 $(document).ready(function() {
 
 	var editor = ace.edit("editor");
-	editor.setTheme("ace/theme/tomorrow_night");
+	editor.setTheme("ace/theme/clouds");
 	// editor.getSession().setMode("ace/mode/less");
 	
+	// Word wrap
 	editor.getSession().setUseWrapMode(true);
+	
+	// Hide print margin
+	editor.setShowPrintMargin(false);
+	
+	// Hide line numbers
+	editor.renderer.setShowGutter(false);
+	
+	// Change font size
+	editor.setFontSize(15);
 
 	ac = AutoComplete(editor, {});
 	ac.init();
