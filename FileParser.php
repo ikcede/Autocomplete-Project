@@ -25,17 +25,46 @@ class FileParser {
 		return true;
 	}
 	
+	/**
+	 * Normalize data
+	 **/
+	public function normalizeString($punc = false) {
+		$this->normalizeLine($this->file, $punc);
+	}
+	
 	// Normalize a string into tokens
 	// Can choose to include punctuation
 	private function normalizeLine($string, $punc = false) {
 		
 		$chars = str_split($string);
 		$word = "";
+		$consec = false;
 		
 		foreach($chars as $val) {
 			if($this->isCharacter($val) || ($punc && !ctype_space($val))) {
-				$word .= strtolower($val);
+				
+				// deal with consequetive ' or -
+				if(ord($val) == 39 || ord($val) == 45) {
+					if(!$consec) {
+						$word .= strtolower($val);
+						$consec=true;
+					} else {
+						$word = substr($word, 0, -1);
+						if($word == "") {
+							// Do nothing
+						} else {
+							array_push($this->data,$word);
+							$word = "";
+						}
+					}
+				} else {
+					// Default behavior with characters
+					$word .= strtolower($val);
+					$consec = false;
+				}
 			} else {
+				// Everything else
+				$consec = false;
 				if($word == "") {
 					// Do nothing
 				} else {

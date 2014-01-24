@@ -1,7 +1,5 @@
 <?php
 
-
-
 /**
  *
  * Guess to see what a fragment should autocomplete to 

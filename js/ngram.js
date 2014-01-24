@@ -15,7 +15,7 @@ var Ngram = function(data) {
 		
 		"get": function(word, previous) {
 			
-			word = this.buildGram(word);
+			word = this.buildGram(word, previous);
 			return this.data[word] ? this.data[word] : 0;
 		
 		},

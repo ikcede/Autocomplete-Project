@@ -65,7 +65,7 @@ var AutoComplete = function(editor, settings) {
 		
 			if(curfrag == "") {}
 			else {
-				words.push(curfrag);
+				words.push(curfrag.toLowerCase());
 				curfrag = "";
 			}
 		
@@ -167,6 +167,7 @@ var AutoComplete = function(editor, settings) {
 					empty = false;
 				}
 			}
+			console.log(hits);
 			
 			if(empty) {
 				// Get all unigram ones instead
@@ -257,14 +258,18 @@ var AutoComplete = function(editor, settings) {
 		//---------------------------------------------------------------
 	
 		// Get all data structures from the server
-		getStructures: function() {
+		getStructures: function(params, callback) {
 			var context = this;
-			$.get("server.php", {}, function(response) {
+			$.get("server.php", params, function(response) {
 				// Response will be a JSON
 				response = JSON.parse(response);
 				context.bigram = Ngram(response.bigram);
 				context.unigram = Ngram(response.unigram);
 				context.trie = Trie(response.trie);
+				
+				if(!(typeof(callback) === "undefined")) {
+					callback();
+				}
 			});
 		},
 	
@@ -278,8 +283,6 @@ var AutoComplete = function(editor, settings) {
 			this.el.hide();
 		
 			var cx = this;
-			
-			this.getStructures();
 			
 			//-----------------------------
 			// Event Handlers
@@ -307,14 +310,19 @@ var AutoComplete = function(editor, settings) {
 				readOnly: false // false if this command should not apply in readOnly mode
 			});
 	
-			// Allow for autocomplete completion
+			// Allow for autocomplete completion on enter
 			editor.commands.addCommand({
 				name: 'ACComplete',
-				bindKey: {win: 'Ctrl-Enter',  mac: 'Ctrl-Enter'},
+				bindKey: {win: 'Enter',  mac: 'Enter'},
 				exec: function(editor) {
 					if(cx.el.is(":visible") && $("#acbox div").length > 0) {
 						editor.getSession().insert(editor.getSession().selection.getCursor(), 
 							$($("#acbox div")[0]).attr("frag") + " ");
+						editor.focus();
+					}
+					// Default insert enter
+					else {
+						editor.getSession().insert(editor.getSession().selection.getCursor(),"\n");
 						editor.focus();
 					}
 				},
@@ -332,15 +340,6 @@ var AutoComplete = function(editor, settings) {
 				},
 				readOnly: false // false if this command should not apply in readOnly mode
 			});
-			
-			// editor.commands.addCommand({
-// 				name: 'tfidf',
-// 				bindKey: {win: 'Ctrl-I',  mac: 'Ctrl-I'},
-// 				exec: function(editor) {
-// 					cx.settings.algo = "inverse";
-// 				},
-// 				readOnly: false // false if this command should not apply in readOnly mode
-// 			});
 	
 			$(document).on("click", "#acbox div", function() {
 				editor.getSession().insert(editor.getSession().selection.getCursor(), $(this).attr("frag") + " ");
@@ -361,7 +360,20 @@ var AutoComplete = function(editor, settings) {
 	}, functions);
 };
 
+// Flip the status on the top
+function flipStatus() {
+	if($("#status").hasClass("loading")) {
+		$("#status").addClass("done").removeClass("loading").html('\
+			<span>Status: </span><img src="img/greenstatus.png" /> <span class="green">Done</span>');
+	} else {
+		$("#status").addClass("loading").removeClass("done").html('\
+			<span>Status: </span><img src="img/redstatus.gif" /> <span class="red">Loading...</span>');
+	}
+}
+
 var ac;
+var ta_change = false;
+var custom = "";
 
 // Ready function
 $(document).ready(function() {
@@ -384,4 +396,49 @@ $(document).ready(function() {
 
 	ac = AutoComplete(editor, {});
 	ac.init();
+	ac.getStructures({}, function() {
+		flipStatus();
+	});
+	
+	$("#title").click(function() {
+		$("#modal").html($("#about").html()).show();
+	});
+	
+	$("#gear").click(function() {
+		$("#modal").html($("#settings").html()).show();
+		$("#modal #custom").val(custom);
+	});
+	
+	$("#modal").on("click",".close-button",function() {
+		$("#modal").hide();
+		if(ta_change) {
+			ta_change = false;
+			flipStatus();
+			ac.getStructures({custom: $("#modal #custom").val()}, function() {
+				flipStatus();
+			});
+		}
+	});
+	
+	// Checking a change
+	$("#modal").on("change","#custom",function() {
+		ta_change = true;
+		custom = $("#modal #custom").val();
+	});
+	
+	// Toggling autocomplete on/off
+	$("#modal").on("click",".ac-toggle",function() {
+		if(ac.settings.on) {
+			ac.el.hide();
+			$(this).removeClass("green").addClass("red").html("OFF");
+		} else {
+			$(this).removeClass("red").addClass("green").html("ON");
+			ac.el.hide();
+			ac.change = (ac.change + 1) % 100;
+			var change = ac.change + 0; // Value copy
+			ac.autocomplete(ac, change);
+		}
+		ac.settings.on = !ac.settings.on;
+	});
+	
 });

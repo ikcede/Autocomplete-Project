@@ -16,6 +16,13 @@ $bigram = new Ngram(array("n"=>2));
 $bigram->trie = $unigram->trie;
 $bigram->add($parser->data);
 
+if(isset($_GET["custom"])) {
+	$custom = new FileParser($_GET["custom"]);
+	$custom->normalizeString();
+	$unigram->add($custom->data);
+	$bigram->add($custom->data);
+}
+
 echo json_encode(array(
 	"trie" => $unigram->trie->data,
 	"unigram" => $unigram->data,
