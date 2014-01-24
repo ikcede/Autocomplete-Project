@@ -167,7 +167,6 @@ var AutoComplete = function(editor, settings) {
 					empty = false;
 				}
 			}
-			console.log(hits);
 			
 			if(empty) {
 				// Get all unigram ones instead
@@ -231,11 +230,11 @@ var AutoComplete = function(editor, settings) {
 				// Display words
 				if(this.settings.expand && this.data && this.data.length > 1) {
 					for(var i=0;i<this.data.length;i++) {
-						this.el.append("<div frag='"+this.data[i].write.replace(/'/g, "\\'")+"'>"
+						this.el.append("<div frag=\""+this.data[i].write+"\">"
 							+this.data[i].data+"</div>");
 					}
 				} else if(this.data && this.data.length > 0) {
-					this.el.html("<div frag='"+this.data[0].write.replace(/'/g, "\\'")+"'>"
+					this.el.html("<div frag=\""+this.data[0].write+"\">"
 						+this.data[0].data+"</div>");
 				} else {
 					this.el.html("");
